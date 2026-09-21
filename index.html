@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Для моей принцесски ❤️</title>
+<meta name="description" content="Открытка на день рождения с тёплыми словами.">
+<link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script crossorigin src="https://unpkg.com/react@19/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@19/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react,typescript">
+
+const { useEffect, useLayoutEffect, useRef, useState } = React;
+/**
+ * Hand-drawn floral vine that wraps a frame.
+ *
+ * Edges use a repeating SVG tile (a curving stem with leaves and small
+ * blossoms) so the vine stays continuous and never stretches. Corners get
+ * larger, layered rose clusters so the vine reads as a real plant growing
+ * around the frame instead of a decorative emoji.
+ */
+
+const STEM = "#5f8a4e";
+const STEM_DARK = "#3f6435";
+const LEAF_A = "#6fa055";
+const LEAF_B = "#8cbb6a";
+const PETAL_A = "#f6a8c5";
+const PETAL_B = "#e2739c";
+const PETAL_C = "#fdd9e6";
+const CORE = "#f6c96a";
+
+const leaf = (x: number, y: number, r: number, s: number, fill: string) =>
+  `<path d="M0 0 C6 -7 16 -9 22 -4 C16 4 6 6 0 0 Z" fill="${fill}" stroke="${STEM_DARK}" stroke-width="0.7" stroke-opacity=".45" transform="translate(${x} ${y}) rotate(${r}) scale(${s})"/>`;
+
+const blossom = (x: number, y: number, s: number, r: number) => {
+  let petals = "";
+  for (let i = 0; i < 5; i++) {
+    petals += `<ellipse cx="0" cy="-5.6" rx="3.5" ry="5.4" fill="${i % 2 ? PETAL_A : PETAL_B}" transform="rotate(${i * 72})"/>`;
+  }
+  return `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s})">${petals}<circle r="2.3" fill="${CORE}"/></g>`;
+};
+
+/** One horizontal repeat of the vine: 160 x 34 user units. */
+const tileBody = `
+<path d="M0 22 C14 6 32 6 44 20 C56 33 74 33 86 19 C98 5 116 5 128 19 C138 30 152 31 160 22"
+  fill="none" stroke="${STEM}" stroke-width="2.4" stroke-linecap="round"/>
+<path d="M0 22 C14 6 32 6 44 20 C56 33 74 33 86 19 C98 5 116 5 128 19 C138 30 152 31 160 22"
+  fill="none" stroke="${STEM_DARK}" stroke-width="0.9" stroke-opacity=".55" stroke-linecap="round"/>
+<path d="M24 10 C30 3 38 2 43 5" fill="none" stroke="${STEM}" stroke-width="1.3" stroke-linecap="round"/>
+<path d="M104 9 C110 3 118 3 122 6" fill="none" stroke="${STEM}" stroke-width="1.3" stroke-linecap="round"/>
+${leaf(16, 12, -32, 1, LEAF_B)}
+${leaf(40, 24, 24, 0.9, LEAF_A)}
+${leaf(70, 30, 8, 0.85, LEAF_B)}
+${leaf(96, 12, -150, 0.95, LEAF_A)}
+${leaf(120, 10, -28, 0.9, LEAF_B)}
+${leaf(146, 27, 18, 0.85, LEAF_A)}
+${blossom(31, 8, 1.05, -12)}
+${blossom(60, 29, 0.8, 20)}
+${blossom(88, 21, 0.7, 0)}
+${blossom(113, 7, 1, 14)}
+${blossom(155, 24, 0.75, -8)}
+`;
+
+const svgUrl = (w: number, h: number, transform: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><g transform="${transform}">${tileBody}</g></svg>`,
+  )}`;
+
+const H_TILE = svgUrl(160, 34, "");
+const H_TILE_FLIP = svgUrl(160, 34, "scale(1 -1) translate(0 -34)");
+const V_TILE = svgUrl(34, 160, "translate(34 0) rotate(90)");
+const V_TILE_FLIP = svgUrl(
+  34,
+  160,
+  "translate(34 0) scale(-1 1) translate(34 0) rotate(90)",
+);
+
+/** A layered garden rose with leaves — used at the frame corners. */
+function RoseCluster({
+  size = 76,
+  rotate = 0,
+  className,
+}: {
+  size?: number;
+  rotate?: number;
+  className?: string;
+}) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+      style={{ transform: `rotate(${rotate}deg)` }}
+    >
+      <path
+        d="M8 92 C22 74 34 66 52 58 C70 50 82 38 92 20"
+        fill="none"
+        stroke={STEM}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M18 84 C30 78 38 70 44 60"
+        fill="none"
+        stroke={STEM}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M0 0 C8 -10 22 -12 30 -5 C22 6 8 8 0 0 Z"
+        fill={LEAF_A}
+        stroke={STEM_DARK}
+        strokeWidth="0.8"
+        strokeOpacity=".4"
+        transform="translate(20 80) rotate(35)"
+      />
+      <path
+        d="M0 0 C8 -10 22 -12 30 -5 C22 6 8 8 0 0 Z"
+        fill={LEAF_B}
+        stroke={STEM_DARK}
+        strokeWidth="0.8"
+        strokeOpacity=".4"
+        transform="translate(46 58) rotate(-140) scale(.9)"
+      />
+      <path
+        d="M0 0 C8 -10 22 -12 30 -5 C22 6 8 8 0 0 Z"
+        fill={LEAF_A}
+        stroke={STEM_DARK}
+        strokeWidth="0.8"
+        strokeOpacity=".4"
+        transform="translate(74 36) rotate(20) scale(.85)"
+      />
+      {/* open rose */}
+      <g transform="translate(64 26)">
+        {[0, 60, 120, 180, 240, 300].map((a) => (
+          <ellipse
+            key={a}
+            cx="0"
+            cy="-13"
+            rx="8.5"
+            ry="13"
+            fill={PETAL_A}
+            transform={`rotate(${a})`}
+            opacity=".95"
+          />
+        ))}
+        {[30, 150, 270].map((a) => (
+          <ellipse
+            key={a}
+            cx="0"
+            cy="-8"
+            rx="6.5"
+            ry="9"
+            fill={PETAL_B}
+            transform={`rotate(${a})`}
+          />
+        ))}
+        <circle r="5.5" fill={PETAL_C} />
+        <circle r="2.6" fill={CORE} />
+      </g>
+      {/* small bud */}
+      <g transform="translate(30 62) scale(.62)">
+        {[0, 72, 144, 216, 288].map((a) => (
+          <ellipse
+            key={a}
+            cx="0"
+            cy="-12"
+            rx="7"
+            ry="11"
+            fill={a % 144 === 0 ? PETAL_B : PETAL_A}
+            transform={`rotate(${a})`}
+          />
+        ))}
+        <circle r="3.4" fill={CORE} />
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Overlay that wraps the nearest positioned ancestor with the vine.
+ * `scale` shrinks the vine for small frames (photo cards, buttons).
+ */
+function VineFrame({ scale = 1 }: { scale?: number }) {
+  const band = Math.round(30 * scale);
+  const rose = Math.round(74 * scale);
+  const len = Math.round(150 * scale);
+  const edge: React.CSSProperties = {
+    position: "absolute",
+    backgroundRepeat: "repeat-x",
+    backgroundSize: `${len}px ${band}px`,
+  };
+  const vEdge: React.CSSProperties = {
+    position: "absolute",
+    backgroundRepeat: "repeat-y",
+    backgroundSize: `${band}px ${len}px`,
+  };
+
+  return (
+    <div className="vine-layer" aria-hidden="true">
+      <span
+        style={{
+          ...edge,
+          left: band,
+          right: band,
+          top: -band / 2,
+          height: band,
+          backgroundImage: `url("${H_TILE}")`,
+        }}
+      />
+      <span
+        style={{
+          ...edge,
+          left: band,
+          right: band,
+          bottom: -band / 2,
+          height: band,
+          backgroundImage: `url("${H_TILE_FLIP}")`,
+        }}
+      />
+      <span
+        style={{
+          ...vEdge,
+          top: band,
+          bottom: band,
+          left: -band / 2,
+          width: band,
+          backgroundImage: `url("${V_TILE}")`,
+        }}
+      />
+      <span
+        style={{
+          ...vEdge,
+          top: band,
+          bottom: band,
+          right: -band / 2,
+          width: band,
+          backgroundImage: `url("${V_TILE_FLIP}")`,
+        }}
+      />
+      <RoseCluster
+        className="vine-rose vine-rose--tl"
+        size={rose}
+        rotate={0}
+      />
+      <RoseCluster
+        className="vine-rose vine-rose--tr"
+        size={rose}
+        rotate={90}
+      />
+      <RoseCluster
+        className="vine-rose vine-rose--br"
+        size={rose}
+        rotate={180}
+      />
+      <RoseCluster
+        className="vine-rose vine-rose--bl"
+        size={rose}
+        rotate={270}
+      />
+    </div>
+  );
+}
+
+const sadSelfie = "assets/sad-selfie.jpeg";
+const photo1 = "assets/photo-1.png";
+const photo2 = "assets/photo-2.jpeg";
+const photo3 = "assets/photo-3.jpeg";
+const photo4 = "assets/photo-4.jpeg";
+const photo5 = "assets/photo-5.jpeg";
+const photo6 = "assets/photo-6.jpeg";
+const photo7 = "assets/photo-7.jpeg";
+const hugsPhoto = "assets/IMG_9397.jpeg";
+const attentionPhoto = "assets/IMG_9407.jpeg";
+const tiredPhoto = "assets/IMG_9413.jpeg";
+const angryPhoto = "assets/IMG_9417.jpeg";
+const lovePhoto = "assets/IMG_9424.jpeg";
+function Index() {
+  const [view, setView] = useState<"home" | "photos" | "moods">("home");
+  const [open, setOpen] = useState<number | null>(null);
+  const [flight, setFlight] = useState<{
+    origin: { x: number; y: number };
+    source: { x: number; y: number };
+    phase: "arriving" | "resting" | "leaving";
+  } | null>(null);
+  const [targets, setTargets] = useState<ButterflyPoint[]>([]);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const modalCard = useRef<HTMLDivElement | null>(null);
+
+  const openRubric = (next: "photos" | "moods") => {
+    setOpen(null);
+    setFlight(null);
+    setTargets([]);
+    setView(next);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+
+  const closeRubric = () => {
+    setView("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const openMood = (event: MouseEvent<HTMLButtonElement>, mood: number) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const origin = {
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2,
+    };
+    setFlight({
+      origin,
+      source: origin,
+      phase: "arriving",
+    });
+    setTargets([]);
+    setOpen(mood);
+  };
+
+  const closeMood = () => {
+    if (!flight || flight.phase === "leaving") return;
+    setFlight({ ...flight, phase: "leaving" });
+    closeTimer.current = setTimeout(() => {
+      setOpen(null);
+      setFlight(null);
+      setTargets([]);
+    }, 1480);
+  };
+
+  useLayoutEffect(() => {
+    if (open === null || !modalCard.current) return;
+
+    const placeButterflies = () => {
+      const rect = modalCard.current?.getBoundingClientRect();
+      if (!rect) return;
+      const vineOffset = 15;
+      const points: Array<[number, number, number, number]> = [
+        [0.12, 0, -18, 0.82], [0.36, 0, 13, 0.68], [0.72, 0, -10, 0.92],
+        [1, 0.2, 76, 0.72], [1, 0.5, 99, 0.86], [1, 0.8, 111, 0.64],
+        [0.76, 1, 169, 0.78], [0.36, 1, 190, 0.67],
+        [0, 0.7, -105, 0.88], [0, 0.3, -78, 0.6],
+      ];
+      setTargets(points.map(([px, py, turn, size]) => {
+        const x = px === 0 ? -vineOffset : px === 1 ? rect.width + vineOffset : px * rect.width;
+        const y = py === 0 ? -vineOffset : py === 1 ? rect.height + vineOffset : py * rect.height;
+        return { x, y, turn, size };
+      }));
+      setFlight((current) => current ? {
+        ...current,
+        source: {
+          x: current.origin.x - rect.left,
+          y: current.origin.y - rect.top,
+        },
+      } : null);
+    };
+
+    placeButterflies();
+    window.addEventListener("resize", placeButterflies);
+    return () => window.removeEventListener("resize", placeButterflies);
+  }, [open]);
+
+  useEffect(() => {
+    if (flight?.phase !== "arriving" || targets.length === 0) return;
+    const timer = setTimeout(
+      () => setFlight((current) => current ? { ...current, phase: "resting" } : null),
+      1700,
+    );
+    return () => clearTimeout(timer);
+  }, [flight?.phase, targets.length]);
+
+  useEffect(() => {
+    if (open === null) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeMood();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, flight]);
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  const active = open === null ? null : moods[open];
+
+  const CloseCross = () => (
+    <span className="rubric-close-cross" aria-hidden="true" />
+  );
+
+  return (
+    <div className="card-page">
+      <div className="wrap">
+        {view === "home" && (
+          <>
+            <div className="box">
+              <VineFrame />
+              <h1>
+                Поздравляю тебя с днём рождения, моя любимая принцесска ❤️
+              </h1>
+              <div className="lead">{lead}</div>
+            </div>
+
+            <nav className="rubric-nav" aria-label="Разделы открытки">
+              <button
+                className="rubric-btn"
+                type="button"
+                onClick={() => openRubric("photos")}
+              >
+                <VineFrame scale={0.6} />
+                <span className="rubric-btn-label">
+                  Что я думаю о твоих фотографиях? 📸
+                </span>
+              </button>
+              <button
+                className="rubric-btn"
+                type="button"
+                onClick={() => openRubric("moods")}
+              >
+                <VineFrame scale={0.6} />
+                <span className="rubric-btn-label">Если вдруг.. 💝</span>
+              </button>
+            </nav>
+            <footer />
+          </>
+        )}
+
+        {view === "photos" && (
+          <div className="rubric">
+            <div className="rubric-topbar">
+              <button
+                className="rubric-close"
+                type="button"
+                aria-label="Закрыть и вернуться на главную"
+                onClick={closeRubric}
+              >
+                <CloseCross />
+              </button>
+            </div>
+            <h2 className="title">Что я думаю о твоих фотографиях? ❤️</h2>
+            <div className="photos">
+              {photos.map((photo, i) => (
+                <div className="card" key={i}>
+                  <VineFrame scale={0.68} />
+                  <img
+                    className="photo"
+                    src={photo.src}
+                    alt={`Фотография ${i + 1}`}
+                  />
+                  <div className="caption">{photo.caption}</div>
+                </div>
+              ))}
+            </div>
+            <footer />
+          </div>
+        )}
+
+        {view === "moods" && (
+          <div className="rubric">
+            <div className="rubric-topbar">
+              <button
+                className="rubric-close"
+                type="button"
+                aria-label="Закрыть и вернуться на главную"
+                onClick={closeRubric}
+              >
+                <CloseCross />
+              </button>
+            </div>
+            <h2 className="title">Если вдруг...</h2>
+            <div className="box">
+              <VineFrame />
+              <div className="intro">
+                Да, я далеко от тебя, но хочу, чтоб хотя бы так, в самые банальные
+                твои состояния, я хотя бы как-то был рядом 😊
+              </div>
+              <div className="moods">
+                {moods.map((m, i) => (
+                  <button
+                    className="mood"
+                    key={m.t}
+                    onClick={(event) => openMood(event, i)}
+                    type="button"
+                  >
+                    <VineFrame scale={0.55} />
+                    <span className="mood-label">{m.t}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <footer />
+          </div>
+        )}
+      </div>
+
+      {active && (
+        <div className={`modal open ${flight?.phase === "leaving" ? "modal--closing" : ""}`} onClick={closeMood}>
+          <div className="mcard" ref={modalCard} onClick={(e) => e.stopPropagation()}>
+            <VineFrame />
+            {flight && targets.length === 10 && (
+              <div className={`butterfly-flight butterfly-flight--${flight.phase}`} aria-hidden="true">
+                {targets.map((target, i) => (
+                  <FlyingButterfly index={i} source={flight.source} target={target} key={i} />
+                ))}
+              </div>
+            )}
+            <button
+              className="close"
+              onClick={closeMood}
+              type="button"
+              aria-label="Закрыть"
+            >
+              ×
+            </button>
+            <div className="mtitle">{active.t}</div>
+            {active.img && (
+              <img
+                className="mphoto"
+                src={active.img}
+                alt={`Фотография: ${active.t}`}
+              />
+            )}
+            <div className="mtext">{active.x}</div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(Index));
+
+</script>
+</body>
+</html>
